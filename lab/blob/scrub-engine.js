@@ -86,6 +86,24 @@
    NOT depend on HTTP byte-range support.
    ========================================================================== */
 
+// Чиста, тестована логіка авто-доведення: якщо y стоїть у зоні переходу (kind='conn'),
+// повертає scrollY центру наступної dive-сцени в напрямку руху; інакше null (нічого не
+// робимо — стоїмо на сцені й читаємо). segments: [{start,end,kind}], dir: +1/-1.
+function settleTargetFor(y, segments, dir) {
+  if (!segments || !segments.length) return null;
+  let ci = 0;
+  for (let i = 0; i < segments.length; i++) if (y >= segments[i].start) ci = i;
+  const seg = segments[ci];
+  if (!seg || seg.kind !== 'conn') return null;         // не в переході — не чіпаємо
+  const centers = segments.filter(s => s.kind === 'dive').map(s => (s.start + s.end) / 2);
+  if (!centers.length) return null;
+  const ahead = dir >= 0 ? centers.filter(c => c > y + 2) : centers.filter(c => c < y - 2).reverse();
+  const to = ahead.length
+    ? ahead[0]
+    : centers.reduce((best, c) => Math.abs(c - y) < Math.abs(best - y) ? c : best, centers[0]);
+  return (to != null && Math.abs(to - y) >= 2) ? to : null;
+}
+
 function mountScrollWorld(container, config) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // BEHAVIOUR hardening (seek step, priming, particles, resize gating) keys off input
@@ -425,16 +443,6 @@ function mountScrollWorld(container, config) {
       if (d) dir = d;                           // напрямок для звичайного скролу/скролбара
     }, { passive: true });
 
-    const segAt = (y) => { let ci = 0; for (let i = 0; i < SEGMENTS.length; i++) if (y >= SEGMENTS[i].start) ci = i; return SEGMENTS[ci]; };
-    const diveCenters = () => SEGMENTS.filter(s => s.kind === 'dive').map(s => (s.start + s.end) / 2);
-    function nextCenter(y) {
-      const cs = diveCenters();
-      const ahead = dir >= 0 ? cs.filter(c => c > y + 2) : cs.filter(c => c < y - 2).reverse();
-      if (ahead.length) return ahead[0];
-      // якщо попереду в напрямку руху нема — найближчий загалом
-      return cs.reduce((best, c) => Math.abs(c - y) < Math.abs(best - y) ? c : best, cs[0]);
-    }
-
     function settleTick(now) {
       requestAnimationFrame(settleTick);
       const y = window.scrollY || 0;
@@ -449,10 +457,9 @@ function mountScrollWorld(container, config) {
       }
       if (now - lastInputAt < IDLE_MS) return;
       if (document.querySelector('dialog[open]')) return;
-      const seg = segAt(y);
-      if (!seg || seg.kind !== 'conn') return;   // тільки коли стоїмо в переході
-      const to = nextCenter(y);
-      if (to == null || Math.abs(to - y) < 2) return;
+      // Чиста логіка рішення (юніт-тест: tests/scrub-engine.test.cjs)
+      const to = settleTargetFor(y, SEGMENTS, dir);
+      if (to == null) return;
       sFrom = y; sTo = to; sStart = now; settling = true;
     }
     requestAnimationFrame(settleTick);
@@ -578,5 +585,5 @@ function injectCSS() {
 }
 
 // Expose for module + global use.
-if (typeof module !== 'undefined' && module.exports) module.exports = { mountScrollWorld };
+if (typeof module !== 'undefined' && module.exports) module.exports = { mountScrollWorld, __test: { settleTargetFor } };
 if (typeof window !== 'undefined') window.mountScrollWorld = mountScrollWorld;
