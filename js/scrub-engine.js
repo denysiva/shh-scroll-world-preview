@@ -344,7 +344,6 @@ function mountScrollWorld(container, config) {
     v.className = 'sw-scene__video';
     v.muted = true;
     v.playsInline = true;
-    v.loop = false;              // грає один раз і тримається на фінальному кадрі
     v.preload = mode;
     v.setAttribute('muted', '');
     v.setAttribute('playsinline', '');
@@ -356,26 +355,23 @@ function mountScrollWorld(container, config) {
       s.loading = false;
       s.loadingStartedAt = 0;
       s.ready = true;
-      // Автопрогравання: кліп завжди стартує з початку (проліт «в'їжджає» з нуля).
-      // updatePlayback у raf() запустить його, щойно сцена стане видимою.
-      try { v.currentTime = 0; } catch (e) {}
-      s.lastMediaTime = 0;
+      // Late-load catch-up uses the already-filtered global playhead. There is no
+      // second per-clip easing clock for the video to chase.
+      s.cur = s.target;
+      const dur = v.duration || 1;
+      try { v.currentTime = clamp(s.cur, 0, 0.999) * dur; } catch (e) {}
+      s.lastMediaTime = v.currentTime;
       s.seekDemandAt = 0;
     });
     // Both events imply that a decoded current frame exists. Keep the matching poster
     // above the video until one of them fires; this avoids blank iOS media layers.
     v.addEventListener('loadeddata', () => {
       if (!current()) return;
+      try { v.pause(); } catch (e) {}
       reveal();
-      // Кік відтворення одразу, якщо сцена вже видима — не чекаємо на rAF-тік
-      // (гарантує, що hero стартує навіть якщо rAF десь throttлиться).
-      if (s.visible && !stillsOnly && !v.ended) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
-      else { try { v.pause(); } catch (e) {} }
+      if (userReady) primeVideo(v);
     }, { once: true });
     v.addEventListener('seeked', reveal, { once: true });
-    // Автопрогравання: перший намальований кадр знімає постер (замість сіку)
-    v.addEventListener('playing', reveal);
-    v.addEventListener('timeupdate', () => { if (current() && v.currentTime > 0) reveal(); });
     v.addEventListener('error', () => {
       if (!current()) return;
       s.loading = false;
@@ -509,29 +505,45 @@ function mountScrollWorld(container, config) {
       read(renderY, scrollTargetY);
     }
 
-    // ── Модель руху: НАТИВНЕ автопрогравання, не перемотка ─────────────────────
-    // Сцена сама плавно програється (нативне відтворення = нуль сіків, нуль ривків,
-    // ніколи не замирає посеред руху). Скрол через read() лише вирішує, ЯКА сцена
-    // видима і як вони перетікають. Кліп грає раз і тримається на фінальному кадрі,
-    // поки користувач читає. Пішли зі сцени → пауза + скидання на 0, щоб при
-    // поверненні проліт «в'їхав» наново.
+    // Крок сіку не дрібніший за половину медіа-кадру (24 fps): частіші сіки
+    // лише гріють декодер, нових кадрів вони не дають.
+    const eps = isMobile() ? 0.045 : 1 / 48;
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
-      // Range не підтримується / metadata не прийшла вчасно → показуємо стіли
+      // Missing Range support can also leave a direct media request permanently at
+      // HAVE_NOTHING without firing an error. A visible poster remains usable, so make
+      // that fallback explicit after the metadata grace period.
       if (s.hasClip && s.visible && !s.ready && s.loadingStartedAt && now - s.loadingStartedAt > 3000) {
         enterStillsMode();
         break;
       }
-      if (!s.hasClip || !s.ready || !s.video) continue;
-      const v = s.video;
-      if (s.visible && !stillsOnly) {
-        // Дограв до кінця → тримаємо фінальний кадр (не зациклюємо проліт)
-        if (!v.ended && v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
-        if (v.currentTime > 0 && !s.el.classList.contains('has-clip')) s.el.classList.add('has-clip');
+      if (!s.hasClip || !s.ready) continue;
+      if (!s.visible && Math.abs(s.cur - s.target) < 0.002) continue;
+
+      // ── Hardware video path: seek directly from the already-smoothed playhead ──
+      if (!s.video) continue;
+      // Never queue a seek while the decoder is still resolving the last one.
+      // On phones a fast flick would otherwise pile up seeks and freeze the clip;
+      // target keeps advancing, so we seek to the latest value when it is free.
+      s.cur = s.target;
+      if (!s.visible) continue;
+      const dur = s.video.duration || 1;
+      const t = clamp(s.cur, 0, 0.999) * dur;
+      const advanced = Math.abs(s.video.currentTime - s.lastMediaTime) > eps * 0.5;
+      if (advanced) { s.lastMediaTime = s.video.currentTime; s.seekDemandAt = 0; }
+      const gap = Math.abs(s.video.currentTime - t);
+
+      // A CDN without HTTP Range can expose metadata/readyState yet silently ignore
+      // random seeks. Detect sustained visible demand and degrade to animated stills
+      // instead of leaving the entire journey frozen on frame zero.
+      if (gap > 0.15) {
+        if (!s.seekDemandAt) s.seekDemandAt = now;
+        else if (now - s.seekDemandAt > 1800) { enterStillsMode(); break; }
       } else {
-        if (!v.paused) { try { v.pause(); } catch (e) {} }
-        if (v.currentTime !== 0) { try { v.currentTime = 0; } catch (e) {} }   // reset для повторного в'їзду
+        s.seekDemandAt = 0;
       }
+      if (s.video.seeking) continue;
+      if (gap > eps) { try { s.video.currentTime = t; } catch (e) {} }
     }
     requestAnimationFrame(raf);
   }
@@ -543,17 +555,12 @@ function mountScrollWorld(container, config) {
   let userReady = false;
   function primeVideo(v) {
     if (!isMobile() || !v) return;
-    // Автопрогравання: на першому дотику пробуємо запустити muted-playsinline відео.
-    // Якщо play() ВІДХИЛЕНО — ОС блокує відео (iOS Low Power Mode) → стіли для всього
-    // сайту. Видиму сцену НЕ ставимо на паузу після прайму (модель хоче її гру);
-    // невидимі — пауза + reset, щоб не грали у фоні.
-    try {
-      const p = v.play();
-      if (p && p.then) p.then(() => {
-        const seg = SEGMENTS.find(s => s.video === v);
-        if (!seg || !seg.visible) { try { v.pause(); v.currentTime = 0; } catch (e) {} }
-      }).catch(() => { enterStillsMode(); });
-    } catch (e) {}
+    // A muted, playsinline play() that REJECTS on a user gesture means the OS is
+    // blocking video — in practice iOS Low Power Mode, where currentTime scrubbing
+    // doesn't work either. Fall back to stills for the whole page instead of showing
+    // frozen/blank scenes.
+    try { const p = v.play(); if (p && p.then) p.then(() => { try { v.pause(); } catch (e) {} }).catch(() => { enterStillsMode(); }); }
+    catch (e) {}
   }
   function onFirstGesture() {
     if (userReady) return;
