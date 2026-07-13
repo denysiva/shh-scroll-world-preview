@@ -87,21 +87,19 @@
    ========================================================================== */
 
 // Чиста, тестована логіка авто-доведення: якщо y стоїть у зоні переходу (kind='conn'),
-// повертає scrollY центру наступної dive-сцени в напрямку руху; інакше null (нічого не
-// робимо — стоїмо на сцені й читаємо). segments: [{start,end,kind}], dir: +1/-1.
+// ДОКІНЧУЄ політ до МЕЖІ сцени в напрямку руху — вперед до кінця конектора (= ПОЧАТОК
+// наступної сцени), назад до початку конектора (= прибуття назад у попередню сцену).
+// Ціль — межа, а не центр: коротша відстань (без «стрибка») і приземлення саме на
+// початок сцени. На самій сцені (kind='dive') повертає null — не чіпаємо, ти читаєш.
+// segments: [{start,end,kind}], dir: +1/-1.
 function settleTargetFor(y, segments, dir) {
   if (!segments || !segments.length) return null;
   let ci = 0;
   for (let i = 0; i < segments.length; i++) if (y >= segments[i].start) ci = i;
   const seg = segments[ci];
   if (!seg || seg.kind !== 'conn') return null;         // не в переході — не чіпаємо
-  const centers = segments.filter(s => s.kind === 'dive').map(s => (s.start + s.end) / 2);
-  if (!centers.length) return null;
-  const ahead = dir >= 0 ? centers.filter(c => c > y + 2) : centers.filter(c => c < y - 2).reverse();
-  const to = ahead.length
-    ? ahead[0]
-    : centers.reduce((best, c) => Math.abs(c - y) < Math.abs(best - y) ? c : best, centers[0]);
-  return (to != null && Math.abs(to - y) >= 2) ? to : null;
+  const to = dir >= 0 ? seg.end : seg.start;            // межа сцени в напрямку руху
+  return Math.abs(to - y) >= 2 ? to : null;
 }
 
 function mountScrollWorld(container, config) {
@@ -422,12 +420,16 @@ function mountScrollWorld(container, config) {
   // наступної сцени в напрямку останнього руху — жодних «стопів у повітрі».
   // Зупинка НА сцені (kind='dive') не чіпається: там ти читаєш копі.
   if (!reduce) {
-    const IDLE_MS = 200;       // пауза вводу до старту доведення
-    const SETTLE_MS = 620;     // тривалість плавного доведення
+    const IDLE_MS = 220;       // пауза вводу до старту доведення
+    // Тривалість глайду пропорційна відстані (стала «кінематографічна» швидкість,
+    // а не фіксований час — короткий доліт не смикає, довгий не летить стрибком).
+    const MS_PER_VH = 1400;    // мс на повний в'юпорт відстані
+    const SETTLE_MIN = 450, SETTLE_MAX = 1300;
     let lastInputAt = performance.now();
     let lastY = window.scrollY || 0, dir = 1;
-    let settling = false, sFrom = 0, sTo = 0, sStart = 0, programmatic = false;
-    const easeInOut = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+    let settling = false, sFrom = 0, sTo = 0, sStart = 0, sDur = 700, programmatic = false;
+    // easeInOutCubic — м'якший старт і зупинка, ніж quad
+    const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
     const markInput = () => { lastInputAt = performance.now(); settling = false; programmatic = false; };
     window.addEventListener('wheel', (e) => { if (e.deltaY) dir = Math.sign(e.deltaY); markInput(); }, { passive: true });
@@ -450,7 +452,7 @@ function mountScrollWorld(container, config) {
         // programmatic лишається true на ВЕСЬ час доведення (не скидаємо синхронно):
         // так асинхронні scroll-події від нашого ж глайду не сприймаються як ввід.
         programmatic = true;
-        const t = Math.min(1, (now - sStart) / SETTLE_MS);
+        const t = Math.min(1, (now - sStart) / sDur);
         window.scrollTo(0, Math.round(sFrom + (sTo - sFrom) * easeInOut(t)));
         if (t >= 1) { settling = false; programmatic = false; lastY = window.scrollY || 0; }
         return;
@@ -460,6 +462,8 @@ function mountScrollWorld(container, config) {
       // Чиста логіка рішення (юніт-тест: tests/scrub-engine.test.cjs)
       const to = settleTargetFor(y, SEGMENTS, dir);
       if (to == null) return;
+      const vhNow = window.innerHeight || 800;
+      sDur = Math.max(SETTLE_MIN, Math.min(SETTLE_MAX, Math.abs(to - y) / vhNow * MS_PER_VH));
       sFrom = y; sTo = to; sStart = now; settling = true;
     }
     requestAnimationFrame(settleTick);
