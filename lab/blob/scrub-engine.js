@@ -398,6 +398,66 @@ function mountScrollWorld(container, config) {
   layout();
   requestAnimationFrame(raf);
 
+  // ── Auto-settle: доводимо політ до сцени, якщо зупинився В ЗОНІ ПЕРЕХОДУ ──────
+  // Скрол лишається керуванням. Але якщо відпустив скрол посеред перельоту між
+  // будівлями (сегмент kind='conn'), камера плавно доводить рух до центру
+  // наступної сцени в напрямку останнього руху — жодних «стопів у повітрі».
+  // Зупинка НА сцені (kind='dive') не чіпається: там ти читаєш копі.
+  if (!reduce) {
+    const IDLE_MS = 200;       // пауза вводу до старту доведення
+    const SETTLE_MS = 620;     // тривалість плавного доведення
+    let lastInputAt = performance.now();
+    let lastY = window.scrollY || 0, dir = 1;
+    let settling = false, sFrom = 0, sTo = 0, sStart = 0, programmatic = false;
+    const easeInOut = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+    const markInput = () => { lastInputAt = performance.now(); settling = false; programmatic = false; };
+    window.addEventListener('wheel', (e) => { if (e.deltaY) dir = Math.sign(e.deltaY); markInput(); }, { passive: true });
+    window.addEventListener('touchmove', markInput, { passive: true });
+    window.addEventListener('touchstart', markInput, { passive: true });
+    window.addEventListener('keydown', markInput);
+    // ВАЖЛИВО: подія scroll приходить асинхронно, тому наш власний глайд (programmatic)
+    // не можна ловити тут як ввід — інакше він сам себе скасує. Реальний ввід
+    // ловлять окремі слухачі wheel/touchmove/touchstart/keydown вище.
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY || 0; const d = Math.sign(y - lastY); lastY = y;
+      if (programmatic) return;                 // глайд триває — не чіпаємо
+      if (d) dir = d;                           // напрямок для звичайного скролу/скролбара
+    }, { passive: true });
+
+    const segAt = (y) => { let ci = 0; for (let i = 0; i < SEGMENTS.length; i++) if (y >= SEGMENTS[i].start) ci = i; return SEGMENTS[ci]; };
+    const diveCenters = () => SEGMENTS.filter(s => s.kind === 'dive').map(s => (s.start + s.end) / 2);
+    function nextCenter(y) {
+      const cs = diveCenters();
+      const ahead = dir >= 0 ? cs.filter(c => c > y + 2) : cs.filter(c => c < y - 2).reverse();
+      if (ahead.length) return ahead[0];
+      // якщо попереду в напрямку руху нема — найближчий загалом
+      return cs.reduce((best, c) => Math.abs(c - y) < Math.abs(best - y) ? c : best, cs[0]);
+    }
+
+    function settleTick(now) {
+      requestAnimationFrame(settleTick);
+      const y = window.scrollY || 0;
+      if (settling) {
+        // programmatic лишається true на ВЕСЬ час доведення (не скидаємо синхронно):
+        // так асинхронні scroll-події від нашого ж глайду не сприймаються як ввід.
+        programmatic = true;
+        const t = Math.min(1, (now - sStart) / SETTLE_MS);
+        window.scrollTo(0, Math.round(sFrom + (sTo - sFrom) * easeInOut(t)));
+        if (t >= 1) { settling = false; programmatic = false; lastY = window.scrollY || 0; }
+        return;
+      }
+      if (now - lastInputAt < IDLE_MS) return;
+      if (document.querySelector('dialog[open]')) return;
+      const seg = segAt(y);
+      if (!seg || seg.kind !== 'conn') return;   // тільки коли стоїмо в переході
+      const to = nextCenter(y);
+      if (to == null || Math.abs(to - y) < 2) return;
+      sFrom = y; sTo = to; sStart = now; settling = true;
+    }
+    requestAnimationFrame(settleTick);
+  }
+
   // ---- helpers ----
   function el(tag, cls) { const n = document.createElement(tag); if (cls) n.className = cls; return n; }
   function pad(n) { return String(n).padStart(2, '0'); }
