@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Shh.group — Performance Marketing, Run Quietly</title>
+  <meta name="description" content="Shh.group — in-house performance marketing team: media buying, creative, tracking and QA for dating, e-commerce and lead-gen offers. Ukraine, since 2023." />
+  <!-- Staging: не індексувати до переїзду на бойовий домен (деплой-гейт у DEPLOY.md) -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0E1214" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Shh.group — Performance Marketing, Run Quietly" />
+  <meta property="og:description" content="In-house media buying, creative, tracking and QA — from unit economics to reconciled reporting. Ukraine, since 2023." />
+  <meta property="og:image" content="assets/img/og-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Shh.group",
+    "logo": "assets/logos/favicon.svg",
+    "description": "Ukraine-based performance marketing team with in-house media buying, creative, tracking and quality control. Dating, e-commerce and lead generation across Meta, Google, TikTok, Snapchat, native and display.",
+    "address": { "@type": "PostalAddress", "addressLocality": "Lviv", "addressCountry": "UA" },
+    "contactPoint": [
+      { "@type": "ContactPoint", "contactType": "sales", "email": "affiliate@shh.group", "telephone": "+380735577291" },
+      { "@type": "ContactPoint", "contactType": "recruitment", "email": "hr@shh.group" }
+    ],
+    "sameAs": ["https://t.me/shhgroup1"]
+  }
+  </script>
+  <link rel="icon" type="image/svg+xml" href="assets/logos/favicon.svg" />
+  <link rel="preload" href="assets/fonts/manrope-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/geist-mono-var.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- LCP: hero-постер вантажиться першим; відео стартує лише після нього -->
+  <link rel="preload" href="assets/img/hq-poster.webp" as="image" />
+  <style>
+    /* Айдентика Shh.group: Shh Black / Slate / White / Shh Green */
+    @font-face {
+      font-family: 'Manrope';
+      src: url('assets/fonts/manrope-var.woff2') format('woff2-variations');
+      font-weight: 200 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Geist Mono';
+      src: url('assets/fonts/geist-mono-var.woff2') format('woff2-variations');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    :root, .sw-root {
+      --sw-bg: #0E1214;          /* == фон згенерованих сцен */
+      --sw-ink: #FFFFFF;
+      --sw-ink-soft: #93A4AC;
+      --sw-accent: #94CB1C;
+      --sw-font-display: 'Manrope', system-ui, sans-serif;
+      --sw-font-body: 'Manrope', system-ui, sans-serif;
+    }
+    /* Рушій розрахований на світлу тему (кнопки/лейбли кладуть --sw-ink як фон
+       або текст); на нашій темній темі це біле-на-білому — перекриваємо брендом */
+    .sw-topcta,
+    .sw-btn--primary {
+      color: #0E1214 !important;
+      background: var(--sw-accent) !important;
+      font-weight: 700 !important;
+    }
+    .sw-btn--ghost {
+      color: #FFFFFF !important;
+      border-color: rgba(255, 255, 255, 0.45) !important;
+      /* без backdrop-filter: blur over scroll-scrubbed video repaints expensively */
+      background: rgba(14, 18, 20, 0.55) !important;
+    }
+    /* Лейбл маршрутної рейки: біла пігулка → текст мусить бути темним */
+    .sw-route__label { color: #0E1214 !important; }
+    /* Контраст тегів-пігулок: темніший зелений текст (AA на світлій пігулці) */
+    .sw-copy__tags li { color: #3c5a0c !important; }
+    /* Touch-цілі рейки: візуально та сама крапка, зона натискання 44×44 */
+    .sw-route__dot { width: 44px !important; height: 44px !important; }
+    /* Прогрес-смужка зверху: тихіша, щоб не сперечалась зі сценою */
+    .sw-scrollbar { height: 2px !important; }
+    .sw-scrollbar span { opacity: 0.75; }
+    /* Невисокі екрани (MacBook із зумом, короткі вікна): копі-блок не має
+       впиратися кнопками в край — стискаємо типографіку */
+    @media (max-height: 860px) {
+      .sw-copy__title { font-size: clamp(1.7rem, 3.4vw, 2.6rem) !important; }
+      .sw-copy__body { font-size: 0.95rem !important; margin-top: 12px !important; }
+      .sw-copy__cta { margin-top: 18px !important; }
+      .sw-copy__tags { margin-top: 14px !important; }
+    }
+    @media (max-height: 640px) { .sw-hint { display: none; } }
+    /* Вузькі телефони: хінт нижче і дрібніший, щоб не наповзав на теги;
+       верхня CTA ховається (не влазить поруч із брендом) */
+    @media (max-width: 480px) {
+      .sw-hint { bottom: 6px !important; font-size: 0.62rem !important; }
+    }
+    @media (max-width: 400px) { .sw-topcta { display: none !important; } }
+
+    /* ── Панель контактів (замість голого mailto) ── */
+    .contact-panel { border: 0; border-radius: 18px; padding: 0; background: #151b1e; color: #fff;
+      width: min(92vw, 560px); box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+    .contact-panel::backdrop { background: rgba(8, 10, 11, 0.72); backdrop-filter: blur(3px); }
+    .contact-panel__inner { padding: 28px clamp(20px, 5vw, 36px) 30px; font-family: 'Manrope', system-ui, sans-serif; }
+    .contact-panel h2 { margin: 0 0 4px; font-size: 1.35rem; letter-spacing: -0.01em; }
+    .contact-panel p { margin: 0 0 18px; color: #93A4AC; font-size: 0.92rem; line-height: 1.5; }
+    .contact-panel__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 520px) { .contact-panel__grid { grid-template-columns: 1fr; } }
+    .contact-panel__col h3 { margin: 0 0 2px; font-size: 0.95rem; }
+    .contact-panel__col .who { color: #93A4AC; font-size: 0.8rem; margin-bottom: 10px; }
+    .contact-panel__col a, .contact-panel__col button {
+      display: block; width: 100%; text-align: left; margin: 6px 0; padding: 10px 14px;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+      color: #fff; font: 600 0.88rem 'Manrope', system-ui, sans-serif; text-decoration: none; cursor: pointer;
+    }
+    .contact-panel__col a:hover, .contact-panel__col button:hover { border-color: var(--sw-accent); }
+    .contact-panel__close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px;
+      border-radius: 50%; border: 0; background: rgba(255,255,255,0.08); color: #fff; font-size: 1rem; cursor: pointer; }
+    .contact-panel__copied { color: var(--sw-accent) !important; border-color: var(--sw-accent) !important; }
+
+    /* ── Прелоадер: тримає завісу, поки прогріваються hero-постер і перше відео ── */
+    .loader { position: fixed; inset: 0; z-index: 9999; background: #0E1214;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 22px; transition: opacity .55s ease; }
+    .loader.is-done { opacity: 0; pointer-events: none; }
+    .loader__mark { font: 800 2rem 'Manrope', system-ui, sans-serif; color: #fff; letter-spacing: -0.02em; }
+    .loader__mark span { color: var(--sw-accent); }
+    .loader__bar { width: min(220px, 50vw); height: 2px; border-radius: 2px; background: rgba(255,255,255,0.12); overflow: hidden; }
+    .loader__bar span { display: block; height: 100%; width: 0%; background: var(--sw-accent); transition: width .4s ease; }
+    @media (prefers-reduced-motion: reduce) { .loader { transition: none; } }
+
+    /* ── Кластер контролів: звук (opt-in) + автопроліт Tour ── */
+    .page-controls { position: fixed; left: clamp(14px, 2vw, 28px); bottom: calc(18px + env(safe-area-inset-bottom));
+      z-index: 70; display: flex; gap: 8px; }
+    .page-controls button { display: flex; align-items: center; gap: 7px; padding: 9px 14px;
+      border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(14,18,20,0.78);
+      color: #d6dde1; font: 600 0.76rem 'Manrope', system-ui, sans-serif;
+      letter-spacing: 0.04em; cursor: pointer; transition: border-color .2s, color .2s; }
+    .page-controls button:hover { border-color: var(--sw-accent); color: #fff; }
+    .page-controls button[aria-pressed="true"] { border-color: var(--sw-accent); color: var(--sw-accent); }
+    @media (max-width: 600px) { .page-controls { bottom: calc(60px + env(safe-area-inset-bottom)); } .page-controls .label { display: none; } .page-controls button { padding: 9px 11px; } }
+    @media (prefers-reduced-motion: reduce) { #tourBtn { display: none; } }
+
+    /* ── Видимий футер (партнери, контакти, юр-рядок) ── */
+    .site-footer { position: relative; z-index: 200; background: #0B0E10; color: #93A4AC;
+      font-family: 'Manrope', system-ui, sans-serif; padding: 56px clamp(20px, 6vw, 72px) 40px;
+      border-top: 1px solid rgba(255,255,255,0.07); }
+    .site-footer h2 { color: #fff; font-size: 1.05rem; margin: 0 0 10px; }
+    .site-footer__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; max-width: 1100px; }
+    .site-footer p, .site-footer li { font-size: 0.88rem; line-height: 1.65; margin: 0; }
+    .site-footer ul { list-style: none; padding: 0; margin: 0; }
+    .site-footer a { color: #d6dde1; text-decoration: none; }
+    .site-footer a:hover { color: var(--sw-accent); }
+    .site-footer__meta { margin-top: 40px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.07);
+      font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.72rem; letter-spacing: 0.08em;
+      text-transform: uppercase; display: flex; flex-wrap: wrap; gap: 8px 24px; }
+  </style>
+</head>
+<body>
+  <!-- Завіса на час прогріву (ховається максимум за 3.5с у будь-якому разі) -->
+  <div class="loader" id="loader" role="status" aria-label="Loading">
+    <div class="loader__mark">Shh<span>.</span></div>
+    <div class="loader__bar"><span id="loaderFill"></span></div>
+  </div>
+  <div id="top"></div>
+  <div id="world" role="main">
+    <!-- Статичне SEO-дзеркало копірайту: єдиний краулябельний текст сторінки.
+         Рушій ховає цей блок при монтуванні. -->
+    <section data-sw-seo>
+      <h1>The quiet machine.</h1>
+      <p>For advertisers and affiliate networks: one in-house Shh.group team takes offers from unit economics through creative, media buying, tracking and reconciled reporting. Since 2023, Lviv, Ukraine, Diia.City resident.</p>
+      <h2>Offer fit — First, the offer has to make sense.</h2>
+      <p>Dating has been our core since 2023; we also run e-commerce and lead-generation offers. Before spend starts, we model the payout, cap and unit economics.</p>
+      <h2>Creative testing — Test small. Stop weak ideas early.</h2>
+      <p>Our in-house studio builds hooks, angles and landing pages in controlled batches — buying data decides what stops, what iterates and what earns more budget.</p>
+      <h2>Media buying — Budget follows the signal.</h2>
+      <p>Meta accounts for roughly 80% of our volume; we also buy on Google, TikTok, Snapchat, native and display — moving budget only where performance supports it, within the agreed cap.</p>
+      <h2>Tracking &amp; QA — A report both sides can reconcile.</h2>
+      <p>Our tracking stack validates and deduplicates conversions, runs fraud checks and cross-checks partner data before anything is reported.</p>
+      <h2>Start with the offer — Bring the brief. We'll start with the questions.</h2>
+      <p>Share the vertical, GEO, payout and cap — we'll review the economics and come back with questions. Looking for a role instead? One office, real ownership, sustainable pace.</p>
+    </section>
+  </div>
+
+  <!-- Видимий футер: партнери і контакти більше не заховані в прихованому SEO-блоці -->
+  <footer class="site-footer">
+    <div class="site-footer__grid">
+      <div>
+        <h2>Partners</h2>
+        <p>Affiliate networks we actively run offers with: OasisAds, PerformCB, K2 Offers, Ice Offers, 8 Network, AdMolly Network.</p>
+      </div>
+      <div>
+        <h2>Advertisers &amp; networks</h2>
+        <ul>
+          <li>Volodymyr — Head of Business Development</li>
+          <li><a href="mailto:affiliate@shh.group">affiliate@shh.group</a></li>
+          <li><a href="https://t.me/shhgroup1" target="_blank" rel="noopener">Telegram</a> · <a href="tel:+380735577291">+380 73 557 72 91</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Careers</h2>
+        <ul>
+          <li>Yuliia — HR</li>
+          <li><a href="mailto:hr@shh.group">hr@shh.group</a></li>
+          <li><a href="https://djinni.co/jobs/?company=shh-group-677ac" target="_blank" rel="noopener">Open roles on Djinni</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="site-footer__meta">
+      <span>© 2026 Shh.group</span>
+      <span>Lviv, Ukraine</span>
+      <span>Diia.City resident</span>
+      <span>Since 2023</span>
+    </div>
+  </footer>
+
+  <!-- Панель контактів: іменований контакт + copy-email + Telegram; mailto — лише фолбек -->
+  <dialog class="contact-panel" id="contactPanel" aria-label="Contact Shh.group">
+    <div class="contact-panel__inner">
+      <button class="contact-panel__close" type="button" data-close aria-label="Close">✕</button>
+      <h2>Send an offer brief</h2>
+      <p>Share the vertical, GEO, payout and cap — we'll review the economics and come back with questions, not a pitch.</p>
+      <div class="contact-panel__grid">
+        <div class="contact-panel__col">
+          <h3>Advertisers &amp; networks</h3>
+          <div class="who">Volodymyr · Head of Business Development</div>
+          <button type="button" data-copy="affiliate@shh.group">Copy email — affiliate@shh.group</button>
+          <a href="https://t.me/shhgroup1" target="_blank" rel="noopener">Write on Telegram</a>
+          <a href="mailto:affiliate@shh.group?subject=Offer%20brief">Open in mail app</a>
+          <a href="tel:+380735577291">Call +380 73 557 72 91</a>
+        </div>
+        <div class="contact-panel__col">
+          <h3>Careers</h3>
+          <div class="who">Yuliia · HR</div>
+          <a href="https://djinni.co/jobs/?company=shh-group-677ac" target="_blank" rel="noopener">View open roles</a>
+          <button type="button" data-copy="hr@shh.group">Copy email — hr@shh.group</button>
+          <a href="mailto:hr@shh.group">Open in mail app</a>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Контроли: атмосферний звук (вимкнено за замовчуванням, стартує лише кліком)
+       і Tour — автопроліт сюжету, який зупиняє будь-який ввід користувача -->
+  <div class="page-controls">
+    <button id="soundBtn" type="button" aria-pressed="false" aria-label="Toggle ambient sound">
+      <span id="soundIcon" aria-hidden="true">🔇</span><span class="label">Sound</span>
+    </button>
+    <button id="tourBtn" type="button" aria-pressed="false" aria-label="Auto-play the tour">
+      <span id="tourIcon" aria-hidden="true">▶</span><span class="label">Tour</span>
+    </button>
+  </div>
+
+  <!-- ?v= — кеш-бастер: python-сервер не шле cache-заголовків, браузери кешують евристично -->
+  <script src="js/scrub-engine.js?v=20260713a"></script>
+  <script>
+    const world = mountScrollWorld(document.getElementById('world'), {
+      brand: { name: 'Shh.group', href: '#top' },
+      cta: { label: 'Send an offer brief', href: '#contact' },
+      hint: 'Scroll through the workflow',
+      diveScroll: 1.3,
+      connScroll: 0.9,
+      crossfade: 0.06,  // короткий motion-preserving dissolve без frozen endpoint zone
+      sections: [
+        {
+          id: 'hq', label: 'Overview',
+          still: 'assets/img/hq.webp',
+          poster: 'assets/img/hq-poster.webp',
+          clip: 'assets/vid/hq.mp4',
+          clipMobile: 'assets/vid/hq-m.mp4',
+          posterMobile: 'assets/img/hq-poster-m.webp',
+          accent: '#94CB1C',
+          scroll: 1.6,
+          eyebrow: 'Shh.group · In-house performance marketing',
+          title: 'The quiet machine.',
+          body: 'For advertisers and affiliate networks: one in-house team takes offers from unit economics through creative, media buying, tracking and reconciled reporting.',
+          tags: ['Since 2023', 'Diia.City resident'],
+        },
+        {
+          id: 'offers', label: 'Offer Fit',
+          still: 'assets/img/offers.webp',
+          poster: 'assets/img/offers-poster.webp',
+          clip: 'assets/vid/offers.mp4',
+          clipMobile: 'assets/vid/offers-m.mp4',
+          posterMobile: 'assets/img/offers-poster-m.webp',
+          accent: '#94CB1C',
+          eyebrow: '01 — Offer fit',
+          title: 'First, the offer has to make sense.',
+          body: 'Dating has been our core since 2023; we also run e-commerce and lead-generation offers. Before spend starts, we model the payout, cap and unit economics.',
+          tags: ['Dating', 'E-commerce', 'Lead generation'],
+        },
+        {
+          id: 'creative', label: 'Creative',
+          still: 'assets/img/creative.webp',
+          poster: 'assets/img/creative-poster.webp',
+          clip: 'assets/vid/creative.mp4',
+          clipMobile: 'assets/vid/creative-m.mp4',
+          posterMobile: 'assets/img/creative-poster-m.webp',
+          accent: '#94CB1C',
+          eyebrow: '02 — Creative testing',
+          title: 'Test small. Stop weak ideas early.',
+          body: 'Our in-house studio builds hooks, angles and landing pages in controlled batches — buying data decides what stops, what iterates and what earns more budget.',
+          tags: ['In-house studio', 'Controlled batches'],
+        },
+        {
+          id: 'buying', label: 'Media Buying',
+          still: 'assets/img/buying.webp',
+          poster: 'assets/img/buying-poster.webp',
+          clip: 'assets/vid/buying.mp4',
+          clipMobile: 'assets/vid/buying-m.mp4',
+          posterMobile: 'assets/img/buying-poster-m.webp',
+          accent: '#94CB1C',
+          scroll: 1.5,
+          eyebrow: '03 — Media buying',
+          title: 'Budget follows the signal.',
+          body: 'Meta accounts for roughly 80% of our volume; we also buy on Google, TikTok, Snapchat, native and display — moving budget only where performance supports it, within the agreed cap.',
+          tags: ['Meta-first', 'Google · TikTok · Snapchat', 'Native · Display'],
+        },
+        {
+          id: 'quality', label: 'Tracking & QA',
+          still: 'assets/img/quality.webp',
+          poster: 'assets/img/quality-poster.webp',
+          clip: 'assets/vid/quality.mp4',
+          clipMobile: 'assets/vid/quality-m.mp4',
+          posterMobile: 'assets/img/quality-poster-m.webp',
+          accent: '#94CB1C',
+          eyebrow: '04 — Tracking & QA',
+          title: 'A report both sides can reconcile.',
+          body: 'Our tracking stack validates and deduplicates conversions, runs fraud checks and cross-checks partner data before anything is reported.',
+          tags: ['Own tracking stack', 'Validation · Dedup', 'Fraud checks'],
+        },
+        {
+          id: 'dawn', label: 'Contact',
+          still: 'assets/img/dawn.webp',
+          poster: 'assets/img/dawn-poster.webp',
+          clip: 'assets/vid/dawn.mp4',
+          clipMobile: 'assets/vid/dawn-m.mp4',
+          posterMobile: 'assets/img/dawn-poster-m.webp',
+          accent: '#94CB1C',
+          scroll: 1.8,
+          eyebrow: 'Start with the offer',
+          title: "Bring the brief. We'll start with the questions.",
+          body: "Share the vertical, GEO, payout and cap — we'll review the economics and come back with questions. Looking for a role instead? One office, real ownership, sustainable pace.",
+          tags: [],
+          cta: {
+            primary: { label: 'Send an offer brief', href: '#contact' },
+            secondary: { label: 'View open roles', href: 'https://djinni.co/jobs/?company=shh-group-677ac' },
+          },
+        },
+      ],
+      connectors: [
+        'assets/vid/conn1.mp4',
+        'assets/vid/conn2.mp4',
+        'assets/vid/conn3.mp4',
+        'assets/vid/conn4.mp4',
+        'assets/vid/conn5.mp4',
+      ],
+      connectorsMobile: [
+        'assets/vid/conn1-m.mp4',
+        'assets/vid/conn2-m.mp4',
+        'assets/vid/conn3-m.mp4',
+        'assets/vid/conn4-m.mp4',
+        'assets/vid/conn5-m.mp4',
+      ],
+      // Власні перші кадри конекторів (не постер наступної сцени)
+      connectorPosters: [
+        'assets/img/conn1-poster.webp',
+        'assets/img/conn2-poster.webp',
+        'assets/img/conn3-poster.webp',
+        'assets/img/conn4-poster.webp',
+        'assets/img/conn5-poster.webp',
+      ],
+      connectorPostersMobile: [
+        'assets/img/conn1-poster-m.webp',
+        'assets/img/conn2-poster-m.webp',
+        'assets/img/conn3-poster-m.webp',
+        'assets/img/conn4-poster-m.webp',
+        'assets/img/conn5-poster-m.webp',
+      ],
+    });
+
+    // ── Прелоадер: етапи прогріву → прогрес-бар → плавне відкриття ──
+    // 1) шрифти  2) hero-постер  3) перший кадр hero-відео намальований (has-clip).
+    // Максимум 3.5с: якщо відео не встигло (повільна мережа, Low Power) — відкриваємось
+    // на постері, довантаження триває у фоні. У stills-режимі відео не чекаємо.
+    (function () {
+      const loader = document.getElementById('loader');
+      const fill = document.getElementById('loaderFill');
+      let done = false;
+      const setP = (p) => { fill.style.width = Math.round(p * 100) + '%'; };
+      const finish = () => {
+        if (done) return; done = true;
+        setP(1);
+        setTimeout(() => {
+          loader.classList.add('is-done');
+          setTimeout(() => loader.remove(), 650);
+        }, 180);
+      };
+      const deadline = setTimeout(finish, 3500);
+      (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => { if (!done) setP(0.35); });
+      const poster = new Image();
+      poster.src = 'assets/img/hq-poster.webp';
+      (poster.decode ? poster.decode() : Promise.resolve()).then(() => { if (!done) setP(0.65); }).catch(() => {});
+      // Відео готове = рушій навісив has-clip на першу сцену (кадр реально намальований)
+      const t0 = performance.now();
+      (function poll() {
+        if (done) return;
+        if (world.isStills()) { clearTimeout(deadline); finish(); return; }
+        if (document.querySelector('.sw-scene.has-clip')) { clearTimeout(deadline); finish(); return; }
+        if (performance.now() - t0 < 3600) setTimeout(poll, 120);
+      })();
+    })();
+
+    // Панель контактів: перехоплюємо всі лінки на #contact (topbar CTA + фінальний CTA)
+    (function () {
+      const panel = document.getElementById('contactPanel');
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href="#contact"]');
+        if (a) { e.preventDefault(); panel.showModal(); }
+        if (e.target.closest('[data-close]')) panel.close();
+        const cp = e.target.closest('[data-copy]');
+        if (cp) {
+          navigator.clipboard.writeText(cp.getAttribute('data-copy')).then(() => {
+            cp.classList.add('contact-panel__copied');
+            const t = cp.textContent;
+            cp.textContent = 'Copied ✓';
+            setTimeout(() => { cp.textContent = t; cp.classList.remove('contact-panel__copied'); }, 1600);
+          }).catch(() => {});
+        }
+      });
+      // Клік по підкладці закриває діалог
+      panel.addEventListener('click', (e) => { if (e.target === panel) panel.close(); });
+    })();
+
+    // ── Атмосферний звук: opt-in, вантажиться лише при першому вмиканні ──
+    (function () {
+      const btn = document.getElementById('soundBtn');
+      const icon = document.getElementById('soundIcon');
+      let audio = null;
+      btn.addEventListener('click', () => {
+        if (!audio) {
+          audio = new Audio('assets/audio/ambient.mp3');
+          audio.loop = true;
+          audio.volume = 0.32;
+        }
+        const on = audio.paused;
+        if (on) { audio.play().catch(() => {}); } else { audio.pause(); }
+        btn.setAttribute('aria-pressed', String(on));
+        icon.textContent = on ? '🔊' : '🔇';
+      });
+      // Вкладка в фоні → звук на паузу (і не вмикаємо назад автоматично)
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && audio && !audio.paused) {
+          audio.pause();
+          btn.setAttribute('aria-pressed', 'false');
+          icon.textContent = '🔇';
+        }
+      });
+    })();
+
+    // ── Tour: автопроліт з постійною швидкістю; БУДЬ-ЯКИЙ ввід зупиняє ──
+    (function () {
+      const btn = document.getElementById('tourBtn');
+      const icon = document.getElementById('tourIcon');
+      let rafId = null, lastT = 0;
+      const SPEED_VH_S = 0.42;   // ~в'юпорта за секунду ≈ 1 сцена за 7-9с з конекторами
+      function stopTour() {
+        if (rafId == null) return;
+        cancelAnimationFrame(rafId); rafId = null;
+        window.__tourActive = false;
+        btn.setAttribute('aria-pressed', 'false'); icon.textContent = '▶';
+        ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(ev => window.removeEventListener(ev, stopTour));
+      }
+      function tick(now) {
+        const dt = lastT ? Math.min(0.1, (now - lastT) / 1000) : 0; lastT = now;
+        const max = document.documentElement.scrollHeight - innerHeight;
+        const next = Math.min(max, scrollY + SPEED_VH_S * innerHeight * dt);
+        window.scrollTo(0, next);
+        if (next >= max - 1) { stopTour(); return; }
+        rafId = requestAnimationFrame(tick);
+      }
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (rafId != null) { stopTour(); return; }
+        lastT = 0;
+        window.__tourActive = true;
+        btn.setAttribute('aria-pressed', 'true'); icon.textContent = '⏸';
+        // Зупинка на перший же справжній ввід користувача (кнопка не рахується)
+        setTimeout(() => ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(ev =>
+          window.addEventListener(ev, stopTour, { passive: true })), 50);
+        rafId = requestAnimationFrame(tick);
+      });
+    })();
+
+    // No automatic idle scrolling: the camera now follows one global playhead, and
+    // manual input remains fully under the visitor's control. The explicit Tour above
+    // is the only component allowed to write scroll position continuously.
+  </script>
+</body>
+</html>

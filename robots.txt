@@ -1,0 +1,4 @@
+# Staging: закрито від індексації, доки сайт не переїде на бойовий домен shh.group.
+# При переїзді: замінити на дозвільний robots.txt + прибрати <meta name="robots" noindex> в index.html.
+User-agent: *
+Disallow: /
