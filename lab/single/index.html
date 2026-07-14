@@ -42,7 +42,7 @@
   </div>
   <div class="lab-badge">LAB · single-file</div>
 
-  <script src="scrub-engine.js?v=single1"></script>
+  <script src="scrub-engine.js?v=single2"></script>
   <script>
     mountScrollWorld(document.getElementById('world'), {
       brand: { name: 'Shh.group', href: '#top' },
@@ -54,9 +54,9 @@
       poster: '../../assets/img/hq-poster.webp',
       posterMobile: '../../assets/img/hq-poster-m.webp',
       fps: 24,
-      // К-сть кадрів кожного сегмента у порядку польоту (dive=193, conn=121):
+      // К-сть кадрів кожного сегмента у порядку польоту (dive=193, conn=239 після інтерполяції):
       // hq, conn1, offers, conn2, creative, conn3, buying, conn4, quality, conn5, dawn
-      segFrames: [193, 121, 193, 121, 193, 121, 193, 121, 193, 121, 193],
+      segFrames: [193, 239, 193, 239, 193, 239, 193, 239, 193, 239, 193],
       diveScroll: 1.3, connScroll: 0.9,
       sections: [
         { id:'hq', label:'Overview', accent:'#94CB1C', scroll:1.6, linger:0.4,
