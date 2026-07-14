@@ -17,6 +17,24 @@
    Потребує глобалів MP4Box + DataStream (mp4box.all.min.js підключений раніше).
    ========================================================================== */
 
+// Чиста, тестована мапа «частка скролу → кадр», рівномірна ПО РУХУ КАМЕРИ.
+// lut — нормалізована (0..1) кумулятивна пройдена камерою відстань на кожному кадрі
+// сегмента. Потрібна, бо вихідне відео Seedance періодично ЗАВМИРАЄ (10–23% кадрів
+// майже не рухаються, найгірше — у перельотах між будівлями). Якщо ділити скрол рівно
+// по КАДРАХ, ці завмирання читаються як ривки; ділимо рівно по РУХУ — на завмерлих
+// кадрах скрол не затримується і швидкість камери стає постійною.
+// Без lut (ще не завантажився) — чесний лінійний фолбек.
+function frameFromMotion(lut, f0, f1, p) {
+  if (!lut || lut.length < 2) return f0 + p * (f1 - f0);
+  let a = 0, b = lut.length - 1;
+  while (a < b) { const m = (a + b) >> 1; if (lut[m] < p) a = m + 1; else b = m; }
+  if (a > 0 && lut[a] > lut[a - 1]) {
+    const t = (p - lut[a - 1]) / (lut[a] - lut[a - 1]);
+    return f0 + (a - 1) + t;
+  }
+  return f0 + a;
+}
+
 function settleTargetFor(y, segments, dir) {
   if (!segments || !segments.length) return null;
   let ci = 0;
@@ -150,13 +168,29 @@ function mountScrollWorld(container, config) {
     window.scrollTo({ top: seg.start + (seg.end - seg.start) * 0.5, behavior: reduce ? 'auto' : 'smooth' });
   }
 
+  // Таблиця руху (motion LUT): для кожного сегмента — нормалізована «пройдена камерою
+  // відстань» на кожному кадрі. Потрібна, бо вихідне відео Seedance періодично ЗАВМИРАЄ
+  // (10–23% кадрів майже не рухаються, найгірше — у перельотах). Якщо ділити скрол рівно
+  // по КАДРАХ, ці завмирання читаються як ривки. Ділимо рівно по РУХУ — на завмерлих
+  // кадрах скрол не затримується, швидкість камери стає постійною.
+  let LUT = null;
+  if (config.motionLut) {
+    fetch(config.motionLut).then(r => r.ok ? r.json() : null)
+      .then(j => { if (j && j.segments && j.segments.length === NSEG) LUT = j.segments; })
+      .catch(() => {});
+  }
+
+  function frameInSegment(ci, p) {
+    return frameFromMotion(LUT && LUT[ci], cumF[ci], cumF[ci + 1] - 1, p);
+  }
+
   function frameForScroll(y) {
     let ci = 0;
     for (let i = 0; i < NSEG; i++) if (y >= SEGMENTS[i].start) ci = i;
     const s = SEGMENTS[ci];
     const local = clamp((y - s.start) / (s.end - s.start), 0, 1);
     const p = s.linger ? lingerEase(local, s.linger) : local;
-    return { f: clamp(cumF[ci] + p * (cumF[ci + 1] - cumF[ci]), 0, MAX_F), ci };
+    return { f: clamp(frameInSegment(ci, p), 0, MAX_F), ci };
   }
 
   function read() {
@@ -544,5 +578,5 @@ function injectCSS() {
   document.head.appendChild(style);
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { mountScrollWorld, __test: { settleTargetFor } };
+if (typeof module !== 'undefined' && module.exports) module.exports = { mountScrollWorld, __test: { settleTargetFor, frameFromMotion } };
 if (typeof window !== 'undefined') window.mountScrollWorld = mountScrollWorld;
