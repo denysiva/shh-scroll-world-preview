@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Shh.group — LAB canvas / WebCodecs</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0E1214" />
+  <link rel="preload" href="../../assets/fonts/manrope-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="../../assets/img/hq-poster.webp" as="image" />
+  <style>
+    @font-face { font-family:'Manrope'; src:url('../../assets/fonts/manrope-var.woff2') format('woff2-variations'); font-weight:200 800; font-display:swap; }
+    :root, .sw-root {
+      --sw-bg:#0E1214; --sw-ink:#FFFFFF; --sw-ink-soft:#93A4AC; --sw-accent:#94CB1C;
+      --sw-font-display:'Manrope',system-ui,sans-serif; --sw-font-body:'Manrope',system-ui,sans-serif;
+    }
+    .sw-topcta, .sw-btn--primary { color:#0E1214 !important; background:var(--sw-accent) !important; font-weight:700 !important; }
+    .sw-btn--ghost { color:#fff !important; border-color:rgba(255,255,255,.45) !important; background:rgba(14,18,20,.55) !important; }
+    .sw-route__label { color:#0E1214 !important; }
+    .sw-copy__tags li { color:#3c5a0c !important; }
+    .lab-badge { position:fixed; left:14px; bottom:14px; z-index:80; font:700 .72rem 'Manrope',sans-serif;
+      color:#0E1214; background:var(--sw-accent); padding:6px 12px; border-radius:999px; letter-spacing:.03em; }
+  </style>
+</head>
+<body>
+  <div id="top"></div>
+  <div id="world">
+    <section data-sw-seo>
+      <h1>Quiet execution. Clear reporting.</h1>
+      <p>A young in-house Shh.group team — media buying, creative, tracking and quality control — scaling our own products and partner offers worldwide, from unit economics to reconciled reporting. Over a decade in performance marketing, relaunched as Shh.group in 2023. Lviv, Ukraine, Diia.City resident.</p>
+      <h2>Offer Fit — First, the offer has to make sense.</h2>
+      <p>Dating has been our core since 2023; we also run e-commerce and lead-generation offers. Before spend starts, we model the payout, cap and unit economics.</p>
+      <h2>Creative testing — Test small. Stop weak ideas early.</h2>
+      <p>Our in-house studio develops hooks, angles and landing pages in controlled batches — buying data decides what stops, what iterates and what earns more budget.</p>
+      <h2>Media buying — Budget follows the signal.</h2>
+      <p>Meta accounts for roughly 80% of our volume; we also buy on Google, TikTok, Snapchat, native and display — moving budget only where performance supports it, within the agreed cap.</p>
+      <h2>Tracking &amp; QA — A report both sides can reconcile.</h2>
+      <p>Our tracking stack validates and deduplicates conversions, runs fraud checks and cross-checks partner data before reporting.</p>
+      <h2>Start with the offer — Bring the brief. We'll start with the questions.</h2>
+      <p>Advertisers and affiliate networks: <a href="mailto:affiliate@shh.group">affiliate@shh.group</a>. Careers: <a href="mailto:hr@shh.group">hr@shh.group</a>, <a href="https://t.me/shhgroup1">Telegram</a>.</p>
+    </section>
+  </div>
+  <div class="lab-badge">LAB · canvas / WebCodecs</div>
+
+  <script src="mp4box.all.min.js"></script>
+  <script src="engine.js?v=wc1"></script>
+  <script>
+    mountScrollWorld(document.getElementById('world'), {
+      brand: { name: 'Shh.group', href: '#top' },
+      cta: { label: 'Send an offer brief', href: 'mailto:affiliate@shh.group' },
+      hint: 'scroll through the workflow',
+      flight: '../single/flight.mp4',
+      flightMobile: '../single/flight-m.mp4',
+      poster: '../../assets/img/hq-poster.webp',
+      posterMobile: '../../assets/img/hq-poster-m.webp',
+      fps: 24,
+      segFrames: [193, 121, 193, 121, 193, 121, 193, 121, 193, 121, 193],
+      diveScroll: 1.3, connScroll: 0.9,
+      sections: [
+        { id:'hq', label:'Overview', accent:'#94CB1C', scroll:1.6, linger:0.4,
+          eyebrow:'Shh.group · In-house performance marketing', title:'The quiet machine.',
+          body:'A young in-house team — media buying, creative, tracking and quality control — scaling our own products and partner offers worldwide, from unit economics to reconciled reporting.',
+          tags:['10+ years','Worldwide','Diia.City resident'] },
+        { id:'offers', label:'Offer Fit', accent:'#94CB1C', eyebrow:'01 — Offer Fit', title:'First, the offer has to make sense.',
+          body:'Dating has been our core since 2023; we also run e-commerce and lead-generation offers. Before spend starts, we model the payout, cap and unit economics.',
+          tags:['Dating','E-commerce','Lead gen'] },
+        { id:'creative', label:'Creative', accent:'#94CB1C', eyebrow:'02 — Creative testing', title:'Test small. Stop weak ideas early.',
+          body:'Our in-house studio develops hooks, angles and landing pages in controlled batches — buying data decides what stops, what iterates and what earns more budget.',
+          tags:['In-house studio','Controlled batches'] },
+        { id:'buying', label:'Media Buying', accent:'#94CB1C', scroll:1.5, linger:0.35, eyebrow:'03 — Media buying', title:'Budget follows the signal.',
+          body:'Meta accounts for roughly 80% of our volume; we also buy on Google, TikTok, Snapchat, native and display — within the agreed cap.',
+          tags:['Meta-first','Google · TikTok · Snapchat','Native · Display'] },
+        { id:'quality', label:'Tracking & QA', accent:'#94CB1C', eyebrow:'04 — Tracking & QA', title:'A report both sides can reconcile.',
+          body:'Our tracking stack validates and deduplicates conversions, runs fraud checks and cross-checks partner data before reporting.',
+          tags:['Own tracking stack','Validation · Dedup','Fraud checks'] },
+        { id:'dawn', label:'Contact', accent:'#94CB1C', scroll:1.8, linger:0.5, eyebrow:'Start with the offer', title:"Bring the brief. We'll start with the questions.",
+          body:'Share the vertical, GEO, payout and cap — we’ll review the economics and come back with the questions that decide whether a test makes sense.',
+          tags:[],
+          cta:{ primary:{label:'Send an offer brief', href:'mailto:affiliate@shh.group'},
+                secondary:{label:'Careers — hr@shh.group', href:'mailto:hr@shh.group'} } },
+      ],
+      connectors: [1,1,1,1,1],
+    });
+  </script>
+</body>
+</html>
