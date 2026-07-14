@@ -248,12 +248,17 @@ function mountScrollWorld(container, config) {
   // Живий прапорець «малюємо через WebCodecs». draw() читає САМЕ його (а не const
   // hasWebCodecs), інакше при падінні WebCodecs fallback на <video> ніколи б не ожив.
   let _wc = hasWebCodecs;
-  const WIN_AHEAD = 40, WIN_BEHIND = 8, MAX_CACHED = 64;
+  // MAX_CACHED тримає декодовані VideoFrame — це ЖИВА відеопам'ять (1600×900 NV12 ≈
+  // 2.16 МБ/кадр). 64 кадри = ~138 МБ; тиснемо до 48 (~104 МБ), запасу все одно вдосталь
+  // (декод 0.6 мс/кадр). Кадри поза вікном обов'язково close() — інакше витік GPU-пам'яті.
+  const WIN_AHEAD = 40, WIN_BEHIND = 8, MAX_CACHED = 48;
   let lastPumpTi = -1;
 
+  // Радіус пошуку навмисно вузький (24, не 90): краще коротко не оновити кадр, ніж
+  // намалювати кадр за пів секунди польоту звідси — це читалось би як стрибок.
   function nearestDecoded(ti) {
     if (decoded.has(ti)) return ti;
-    for (let r = 1; r <= 90; r++) {
+    for (let r = 1; r <= 24; r++) {
       if (decoded.has(ti - r)) return ti - r;
       if (decoded.has(ti + r)) return ti + r;
     }
@@ -294,17 +299,36 @@ function mountScrollWorld(container, config) {
     ctx.drawImage(src, dx, dy, dw, dh);
   }
 
+  function drawFrame(f) {
+    try { drawCover(f, f.displayWidth || f.codedWidth, f.displayHeight || f.codedHeight); } catch (e) {}
+  }
+  function markDrawn() {
+    if (drawnOnce) return;
+    drawnOnce = true; scene.classList.add('has-canvas'); finishLoader();
+  }
+
   function draw() {
     requestAnimationFrame(draw);
     // плавне доведення поточного кадру до цілі (легкий лерп прибирає «сходинки» від колеса)
     curF += (targetF - curF) * (reduce ? 1 : 0.25);
-    const ti = clamp(Math.round(curF), 0, MAX_F);
+    const cf = clamp(curF, 0, MAX_F);
+    const ti = clamp(Math.round(cf), 0, MAX_F);
     if (_wc && !stillsOnly) {
-      const best = nearestDecoded(ti);
-      if (best != null) {
-        const f = decoded.get(best);
-        try { drawCover(f, f.displayWidth || f.codedWidth, f.displayHeight || f.codedHeight); } catch (e) {}
-        if (!drawnOnce) { drawnOnce = true; scene.classList.add('has-canvas'); finishLoader(); }
+      // ТЕМПОРАЛЬНА ІНТЕРПОЛЯЦІЯ. Кадрів лише ~133 на в'юпорт скролу, тож при
+      // повільному (читацькому) скролі камера дає 20–40 УНІКАЛЬНИХ кадрів/с проти
+      // 60 Гц екрана — один кадр висів би 2–3 оновлення поспіль = сходинки.
+      // Змішуємо два сусідні кадри за дробовою частиною позиції → рух лишається
+      // неперервним на БУДЬ-ЯКІЙ швидкості скролу (на швидкості читається як motion blur).
+      const a = Math.floor(cf), b = Math.min(MAX_F, a + 1), t = cf - a;
+      const fa = decoded.get(a), fb = decoded.get(b);
+      if (fa) {
+        drawFrame(fa);
+        if (fb && t > 0.02) { ctx.globalAlpha = t; drawFrame(fb); ctx.globalAlpha = 1; }
+        markDrawn();
+      } else {
+        // потрібного кадру ще немає — малюємо найближчий готовий, аби рух не спинявся
+        const best = nearestDecoded(ti);
+        if (best != null) { drawFrame(decoded.get(best)); markDrawn(); }
       }
       // pump/evict — лише коли цільовий кадр реально змінився (інакше щокадру
       // будували б масив-порядок і сканували кеш дарма).
