@@ -302,9 +302,14 @@ function mountScrollWorld(container, config) {
   function drawFrame(f) {
     try { drawCover(f, f.displayWidth || f.codedWidth, f.displayHeight || f.codedHeight); } catch (e) {}
   }
+  // Показуємо картинку щойно є перший кадр, але ПРЕЛОАДЕР тримаємо, доки движок не
+  // готовий: демукс 1763 семплів іде в головному потоці, і якщо пустити скролити одразу
+  // після першого кадру — перші секунди затинаються (заміряно на записі Дениса: 16 із 32
+  // затиків були в перші 8 с). Чекаємо: усі семпли розібрані + прогріте вікно декоду.
+  const WARM_FRAMES = 24;
   function markDrawn() {
-    if (drawnOnce) return;
-    drawnOnce = true; scene.classList.add('has-canvas'); finishLoader();
+    if (!drawnOnce) { drawnOnce = true; scene.classList.add('has-canvas'); }
+    if (!loaderDone && allSamples && decoded.size >= WARM_FRAMES) finishLoader();
   }
 
   function draw() {
@@ -362,11 +367,13 @@ function mountScrollWorld(container, config) {
             return buf.buffer;
           }
           chunks.push(value); loaded += value.length;
-          if (total) { const pct = Math.min(99, Math.round(loaded / total * 100)); loaderBar.style.transform = `scaleX(${pct / 100})`; loaderPct.textContent = pct + '%'; }
+          // Завантаження — перша фаза прогресу (0→90%); решту добере демукс і прогрів.
+          if (total) { const pct = Math.min(90, Math.round(loaded / total * 90)); loaderBar.style.transform = `scaleX(${pct / 100})`; loaderPct.textContent = pct + '%'; }
           return pumpDL();
         });
       })();
     }).then(buf => {
+      armLoaderTimeout(8000);
       if (hasWebCodecs) demux(buf);
       else fallbackVideo(buf);
     }).catch(() => { finishLoader(); });
@@ -401,6 +408,11 @@ function mountScrollWorld(container, config) {
       for (const s of samps) {
         const idx = s.number;                      // decode-order index (немає B-кадрів → == порядок показу)
         if (idx >= 0 && idx < TOTAL_FRAMES) { samples[idx] = s.data; samplesReady++; }
+      }
+      // Демукс — друга фаза прогресу (90→97%): він теж триває і теж блокує потік.
+      if (!allSamples) {
+        const pct = 90 + Math.min(7, Math.round(samplesReady / TOTAL_FRAMES * 7));
+        loaderBar.style.transform = `scaleX(${pct / 100})`; loaderPct.textContent = pct + '%';
       }
       if (samplesReady >= TOTAL_FRAMES - 1) { allSamples = true; pump(0, 1); }
       // перший кадр — якнайшвидше
@@ -441,6 +453,10 @@ function mountScrollWorld(container, config) {
   Object.defineProperty(window, '__sw_wc', { get: () => _wc, configurable: true });
 
   let loaderDone = false;
+  // Запобіжник: якщо демукс/декод десь застрягне, прелоадер не має висіти вічно —
+  // краще пустити на сторінку (кадр уже намальовано), ніж тримати перед бар'єром.
+  function armLoaderTimeout(ms) { setTimeout(() => { if (drawnOnce) finishLoader(); }, ms); }
+
   function finishLoader() {
     if (loaderDone) return; loaderDone = true;
     loaderBar.style.transform = 'scaleX(1)'; loaderPct.textContent = '100%';
