@@ -43,7 +43,7 @@
   <div class="lab-badge">LAB · canvas / WebCodecs</div>
 
   <script src="mp4box.all.min.js"></script>
-  <script src="engine.js?v=wc2"></script>
+  <script src="engine.js?v=wc3"></script>
   <script>
     mountScrollWorld(document.getElementById('world'), {
       brand: { name: 'Shh.group', href: '#top' },
@@ -57,24 +57,27 @@
       fps: 24,
       segFrames: [193, 121, 193, 121, 193, 121, 193, 121, 193, 121, 193],
       diveScroll: 1.3, connScroll: 0.9,
+      // Ширина скролу пропорційна РУХУ камери в кожному сегменті → єдина
+      // швидкість по всьому прольоту (без прискорення у перельотах).
+      connScrollEach: [0.98, 1.34, 1.30, 1.22, 1.04],
       sections: [
-        { id:'hq', label:'Overview', accent:'#94CB1C', scroll:1.6, linger:0.4,
+        { id:'hq', label:'Overview', accent:'#94CB1C', scroll:1.13,
           eyebrow:'Shh.group · In-house performance marketing', title:'The quiet machine.',
           body:'A young in-house team — media buying, creative, tracking and quality control — scaling our own products and partner offers worldwide, from unit economics to reconciled reporting.',
           tags:['10+ years','Worldwide','Diia.City resident'] },
-        { id:'offers', label:'Offer Fit', accent:'#94CB1C', eyebrow:'01 — Offer Fit', title:'First, the offer has to make sense.',
+        { id:'offers', label:'Offer Fit', accent:'#94CB1C', scroll:1.08, eyebrow:'01 — Offer Fit', title:'First, the offer has to make sense.',
           body:'Dating has been our core since 2023; we also run e-commerce and lead-generation offers. Before spend starts, we model the payout, cap and unit economics.',
           tags:['Dating','E-commerce','Lead gen'] },
-        { id:'creative', label:'Creative', accent:'#94CB1C', eyebrow:'02 — Creative testing', title:'Test small. Stop weak ideas early.',
+        { id:'creative', label:'Creative', accent:'#94CB1C', scroll:1.4, eyebrow:'02 — Creative testing', title:'Test small. Stop weak ideas early.',
           body:'Our in-house studio develops hooks, angles and landing pages in controlled batches — buying data decides what stops, what iterates and what earns more budget.',
           tags:['In-house studio','Controlled batches'] },
-        { id:'buying', label:'Media Buying', accent:'#94CB1C', scroll:1.5, linger:0.35, eyebrow:'03 — Media buying', title:'Budget follows the signal.',
+        { id:'buying', label:'Media Buying', accent:'#94CB1C', scroll:1.25, eyebrow:'03 — Media buying', title:'Budget follows the signal.',
           body:'Meta accounts for roughly 80% of our volume; we also buy on Google, TikTok, Snapchat, native and display — within the agreed cap.',
           tags:['Meta-first','Google · TikTok · Snapchat','Native · Display'] },
-        { id:'quality', label:'Tracking & QA', accent:'#94CB1C', eyebrow:'04 — Tracking & QA', title:'A report both sides can reconcile.',
+        { id:'quality', label:'Tracking & QA', accent:'#94CB1C', scroll:1.2, eyebrow:'04 — Tracking & QA', title:'A report both sides can reconcile.',
           body:'Our tracking stack validates and deduplicates conversions, runs fraud checks and cross-checks partner data before reporting.',
           tags:['Own tracking stack','Validation · Dedup','Fraud checks'] },
-        { id:'dawn', label:'Contact', accent:'#94CB1C', scroll:1.8, linger:0.5, eyebrow:'Start with the offer', title:"Bring the brief. We'll start with the questions.",
+        { id:'dawn', label:'Contact', accent:'#94CB1C', scroll:1.36, eyebrow:'Start with the offer', title:"Bring the brief. We'll start with the questions.",
           body:'Share the vertical, GEO, payout and cap — we’ll review the economics and come back with the questions that decide whether a test makes sense.',
           tags:[],
           cta:{ primary:{label:'Send an offer brief', href:'mailto:affiliate@shh.group'},

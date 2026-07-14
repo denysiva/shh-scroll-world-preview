@@ -74,7 +74,12 @@ function mountScrollWorld(container, config) {
   SECTIONS.forEach((s, i) => {
     const dive = { kind: 'dive', si: i, accent: s.accent, w: s.scroll || DIVE_W, linger: s.linger || 0 };
     SEGMENTS.push(dive); s._seg = dive;
-    if (i < N - 1 && CONNECTORS[i]) SEGMENTS.push({ kind: 'conn', si: i, accent: SECTIONS[i + 1].accent, w: CONN_W });
+    // Ширина скролу кожного перельоту — окремо (config.connScrollEach), бо перельоти
+    // мають РІЗНУ кількість руху камери; однакова ширина = стрибок швидкості на межі.
+    if (i < N - 1 && CONNECTORS[i]) {
+      const cw = (config.connScrollEach && config.connScrollEach[i]) || CONN_W;
+      SEGMENTS.push({ kind: 'conn', si: i, accent: SECTIONS[i + 1].accent, w: cw });
+    }
   });
   const NSEG = SEGMENTS.length;
   const cumF = [0];
@@ -240,7 +245,11 @@ function mountScrollWorld(container, config) {
   const decoded = new Map();                 // index → VideoFrame
   const pending = new Set();
   let drawnOnce = false, lastDir = 1, videoEl = null;
+  // Живий прапорець «малюємо через WebCodecs». draw() читає САМЕ його (а не const
+  // hasWebCodecs), інакше при падінні WebCodecs fallback на <video> ніколи б не ожив.
+  let _wc = hasWebCodecs;
   const WIN_AHEAD = 40, WIN_BEHIND = 8, MAX_CACHED = 64;
+  let lastPumpTi = -1;
 
   function nearestDecoded(ti) {
     if (decoded.has(ti)) return ti;
@@ -290,15 +299,16 @@ function mountScrollWorld(container, config) {
     // плавне доведення поточного кадру до цілі (легкий лерп прибирає «сходинки» від колеса)
     curF += (targetF - curF) * (reduce ? 1 : 0.25);
     const ti = clamp(Math.round(curF), 0, MAX_F);
-    if (hasWebCodecs && !stillsOnly) {
+    if (_wc && !stillsOnly) {
       const best = nearestDecoded(ti);
       if (best != null) {
         const f = decoded.get(best);
         try { drawCover(f, f.displayWidth || f.codedWidth, f.displayHeight || f.codedHeight); } catch (e) {}
         if (!drawnOnce) { drawnOnce = true; scene.classList.add('has-canvas'); finishLoader(); }
       }
-      pump(ti, lastDir);
-      evict(ti);
+      // pump/evict — лише коли цільовий кадр реально змінився (інакше щокадру
+      // будували б масив-порядок і сканували кеш дарма).
+      if (ti !== lastPumpTi) { lastPumpTi = ti; pump(ti, lastDir); evict(ti); }
     } else if (videoEl && videoReady) {
       // fallback: <video>-scrub (без стрибків на стиках — файл один)
       if (!videoEl.seeking) {
@@ -394,7 +404,7 @@ function mountScrollWorld(container, config) {
 
   function fallbackVideo(buf) {
     // WebCodecs недоступний / не підтримав кодек → <video>-scrub того ж файлу.
-    hasWebCodecsForce(false);
+    _wc = false;
     const blob = new Blob([buf], { type: 'video/mp4' });
     const v = document.createElement('video');
     v.className = 'sw-scene__video'; v.muted = true; v.playsInline = true; v.preload = 'auto';
@@ -404,8 +414,6 @@ function mountScrollWorld(container, config) {
     v.addEventListener('seeked', () => { scene.classList.add('has-canvas'); if (!drawnOnce) { drawnOnce = true; finishLoader(); } }, { once: true });
     scene.appendChild(v); videoEl = v;
   }
-  let _wc = hasWebCodecs;
-  function hasWebCodecsForce(b) { _wc = b; }
   Object.defineProperty(window, '__sw_wc', { get: () => _wc, configurable: true });
 
   let loaderDone = false;
@@ -516,7 +524,9 @@ function injectCSS() {
   .sw-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--sw-ink);}
   .sw-brand__mark{width:24px;height:28px;border-radius:7px 7px 10px 10px;background:linear-gradient(160deg,var(--sw-accent),color-mix(in srgb,var(--sw-accent) 60%,#000));box-shadow:0 6px 14px color-mix(in srgb,var(--sw-accent) 40%,transparent);}
   .sw-brand__name{font-family:var(--sw-font-display);font-weight:700;font-size:1.1rem;}
-  .sw-nav{display:flex;gap:4px;padding:5px;background:color-mix(in srgb,#fff 55%,transparent);backdrop-filter:blur(10px);border:1px solid color-mix(in srgb,var(--sw-accent) 16%,transparent);border-radius:999px;}
+  /* БЕЗ backdrop-filter: блюр над canvas, що перемальовується щокадрово, змушує GPU
+     переблюрювати щокадру = ривки. Замість блюру — щільніший фон. */
+  .sw-nav{display:flex;gap:4px;padding:5px;background:color-mix(in srgb,#fff 82%,transparent);border:1px solid color-mix(in srgb,var(--sw-accent) 16%,transparent);border-radius:999px;}
   .sw-nav__item{font:inherit;font-size:.82rem;color:var(--sw-ink-soft);border:0;background:transparent;cursor:pointer;padding:7px 14px;border-radius:999px;transition:color .25s,background .25s;}
   .sw-nav__item:hover{color:var(--sw-ink);} .sw-nav__item.is-active{color:#fff;background:var(--sw-accent);}
   .sw-topcta{text-decoration:none;font-weight:600;font-size:.9rem;color:#fff;background:var(--sw-ink);padding:10px 20px;border-radius:999px;white-space:nowrap;}
@@ -546,7 +556,7 @@ function injectCSS() {
   .sw-route__dot i{width:9px;height:9px;border-radius:50%;background:color-mix(in srgb,var(--sw-accent) 40%,transparent);transition:transform .3s,background .3s,box-shadow .3s;}
   .sw-route__dot:hover i{transform:scale(1.25);background:var(--sw-accent);}
   .sw-route__dot.is-active i{background:var(--sw-accent);transform:scale(1.4);box-shadow:0 0 0 5px color-mix(in srgb,var(--sw-accent) 22%,transparent);}
-  .sw-route__label{position:absolute;right:24px;top:50%;transform:translateY(-50%) translateX(6px);white-space:nowrap;font-size:.78rem;font-weight:600;color:var(--sw-ink);background:color-mix(in srgb,#fff 85%,transparent);backdrop-filter:blur(6px);padding:5px 11px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;border:1px solid color-mix(in srgb,var(--sw-accent) 14%,transparent);}
+  .sw-route__label{position:absolute;right:24px;top:50%;transform:translateY(-50%) translateX(6px);white-space:nowrap;font-size:.78rem;font-weight:600;color:var(--sw-ink);background:color-mix(in srgb,#fff 95%,transparent);padding:5px 11px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;border:1px solid color-mix(in srgb,var(--sw-accent) 14%,transparent);}
   .sw-route__dot:hover .sw-route__label,.sw-route__dot.is-active .sw-route__label{opacity:1;transform:translateY(-50%) translateX(0);}
   .sw-hint{position:fixed;left:50%;bottom:26px;z-index:30;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sw-ink-soft);transition:opacity .3s;}
   .sw-hint i{width:22px;height:34px;border-radius:12px;border:2px solid color-mix(in srgb,var(--sw-ink) 28%,transparent);position:relative;}
